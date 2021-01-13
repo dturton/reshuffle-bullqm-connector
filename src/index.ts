@@ -1,26 +1,28 @@
+import { Queue, QueueOptions, RedisOptions } from 'bullmq'
+import IORedis from 'ioredis'
 import { Reshuffle, BaseConnector, EventConfiguration } from 'reshuffle-base-connector'
 
-export interface _CONNECTOR_NAME_ConnectorConfigOptions {
-  var1: string
-  // ...
+export interface BullMQConnectorConfigOptions {
+  queueName: string
+  connectionProps?: RedisOptions
+  queueOptions?: QueueOptions
 }
 
-export interface _CONNECTOR_NAME_ConnectorEventOptions {
+export interface BullMQConnectorEventOptions {
   option1?: string
-  // ...
 }
 
-export default class _CONNECTOR_NAME_Connector extends BaseConnector<
-  _CONNECTOR_NAME_ConnectorConfigOptions,
-  _CONNECTOR_NAME_ConnectorEventOptions
+export default class BullMQConnector extends BaseConnector<
+  BullMQConnectorConfigOptions,
+  BullMQConnectorEventOptions
 > {
-  // Your class variables
-  var1: string
+  private readonly _queue: Queue
 
-  constructor(app: Reshuffle, options?: _CONNECTOR_NAME_ConnectorConfigOptions, id?: string) {
+  constructor(app: Reshuffle, options: BullMQConnectorConfigOptions, id?: string) {
+    const { queueName, queueOptions, connectionProps } = options
+    const connection = new IORedis(connectionProps)
     super(app, options, id)
-    this.var1 = options?.var1 || 'initial value'
-    // ...
+    this._queue = new Queue(queueName, { ...queueOptions, connection })
   }
 
   onStart(): void {
@@ -32,13 +34,9 @@ export default class _CONNECTOR_NAME_Connector extends BaseConnector<
   }
 
   // Your events
-  on(
-    options: _CONNECTOR_NAME_ConnectorEventOptions,
-    handler: any,
-    eventId: string,
-  ): EventConfiguration {
+  on(options: BullMQConnectorEventOptions, handler: any, eventId: string): EventConfiguration {
     if (!eventId) {
-      eventId = `_CONNECTOR_NAME_/${options.option1}/${this.id}`
+      eventId = `BullMQ/${options.option1}/${this.id}`
     }
     const event = new EventConfiguration(eventId, this, options)
     this.eventConfigurations[event.id] = event
@@ -56,6 +54,10 @@ export default class _CONNECTOR_NAME_Connector extends BaseConnector<
   action2(foo: string): void {
     // Your implementation here
   }
+
+  queue(): Queue {
+    return this._queue
+  }
 }
 
-export { _CONNECTOR_NAME_Connector }
+export { BullMQConnector }
